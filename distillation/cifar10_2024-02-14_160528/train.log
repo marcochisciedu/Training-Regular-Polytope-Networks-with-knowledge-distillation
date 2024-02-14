@@ -1,0 +1,1 @@
+2024-02-14 16:05:30,143 [INFO] bit_common: Namespace(model='BiT-M-R152x2', dataset='cifar10', logdir='/home/mchisci/Progetto-Computer-Vision/distillation', name='cifar10_2024-02-14_160528', finetuned='/home/mchisci/Progetto-Computer-Vision/bit_logs/cifar10_2024-02-13_173456/bit.pth.tar', datadir='datadir', workers=8, save=True)

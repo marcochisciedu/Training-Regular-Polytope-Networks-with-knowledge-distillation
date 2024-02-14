@@ -1,4 +1,3 @@
-import bit_pytorch.train as train
 import torch
 
 print(torch.__version__)
