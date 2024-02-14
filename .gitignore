@@ -3,3 +3,4 @@ __pycache__/
 
 #cifar10 dataset
 datadir/
+bit_logs/
