@@ -11,7 +11,9 @@ import bit_pytorch.lbtoolbox as lb
 
 def argparser(known_models):
   parser = argparse.ArgumentParser(description="Knowledge distillation")
-  parser.add_argument("--model", choices=list(known_models),
+  parser.add_argument("--model_teacher", choices=list(known_models),
+                      help="Which variant to use; BiT-M gives best results.")
+  parser.add_argument("--model_student", choices=list(known_models),
                       help="Which variant to use; BiT-M gives best results.")
   parser.add_argument("--dataset", choices=list(bit_hyperrule.known_dataset_sizes.keys()),
                       help="Choose the dataset. It should be easy to add your own! "
@@ -38,21 +40,29 @@ def main(args):
 
     logger.info(f"Loading model from {args.finetuned}")
     train_set, valid_set, train_loader, valid_loader = train.mktrainval(args, logger)
-    model = models.KNOWN_MODELS[args.model](head_size=len(valid_set.classes), zero_head=True)
-    model.load_from(np.load(f"{args.model}.npz"))
+    teacher = models.KNOWN_MODELS[args.model_teacher](head_size=len(valid_set.classes), zero_head=True)
 
-    logger.info("Moving model onto all GPUs")
-    model = torch.nn.DataParallel(model)
+    logger.info("Moving teacher model onto all GPUs")
+    teacher = torch.nn.DataParallel(teacher)
 
     checkpoint = torch.load(args.finetuned, map_location="cpu")
     logger.info(f"Found saved model to resume from at '{args.finetuned}'")
 
     step = checkpoint["step"]
     logger.info(f"Resumed at step {step}")
-    model.load_state_dict(checkpoint["model"])
+    teacher.load_state_dict(checkpoint["model"])
 
-    model = model.to(device)
-    train.run_eval(model, valid_loader, device, chrono, logger, step='end')
+    teacher = teacher.to(device)
+    train.run_eval(teacher, valid_loader, device, chrono, logger, step='end')
+
+    student = models.KNOWN_MODELS[args.model_student](head_size=len(valid_set.classes), zero_head=True)
+
+    logger.info("Moving student model onto all GPUs")
+    student = torch.nn.DataParallel(student)
+
+    student = student.to(device)
+    train.run_eval(student, valid_loader, device, chrono, logger, step='end')
+    
 
 if __name__ == "__main__":
   parser = argparser(models.KNOWN_MODELS.keys())
