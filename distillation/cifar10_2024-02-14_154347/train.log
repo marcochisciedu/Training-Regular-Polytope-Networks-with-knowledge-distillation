@@ -1,7 +1,0 @@
-2024-02-14 15:43:49,381 [INFO] bit_common: Namespace(name='cifar10_2024-02-14_154347', model='BiT-M-R152x2', logdir='/home/mchisci/Progetto-Computer-Vision/distillation', bit_pretrained_dir='/home/mchisci/Progetto-Computer-Vision/bit_logs/cifar10_2024-02-13_173456/bit.pth.tar', dataset='cifar10', examples_per_class=None, examples_per_class_seed=0, batch=512, batch_split=1, base_lr=0.003, eval_every=None, datadir='datadir', workers=8, save=True)
-2024-02-14 15:43:49,382 [INFO] bit_common: Loading model from BiT-M-R152x2.npz
-2024-02-14 15:43:51,116 [INFO] bit_common: Using a training set with 50000 images.
-2024-02-14 15:43:51,116 [INFO] bit_common: Using a validation set with 10000 images.
-2024-02-14 15:43:55,264 [INFO] bit_common: Moving model onto all GPUs
-2024-02-14 15:43:55,271 [INFO] bit_common: Running validation...
-2024-02-14 15:55:34,527 [INFO] bit_common: Validation@end loss 2.30259, top1 10.00%, top5 50.00%

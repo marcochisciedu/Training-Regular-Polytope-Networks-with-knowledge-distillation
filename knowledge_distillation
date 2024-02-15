@@ -22,7 +22,13 @@ def argparser(known_models):
                       help="Name of this run. Used for monitoring and checkpointing.")
   parser.add_argument("--finetuned", required=True,
                       help="Where to search for finetuned BiT models.")
-  
+  parser.add_argument("--batch", type=int, default=512,
+                      help="Batch size.")
+  parser.add_argument("--batch_split", type=int, default=1,
+                      help="Number of batches to compute gradient on before updating weights.")
+  parser.add_argument("--examples_per_class", type=int, default=None,
+                      help="For the few-shot variant, use this many examples "
+                      "per class only.")
   return parser
 
 def main(args):
@@ -33,14 +39,17 @@ def main(args):
     logger.info(f"Loading model from {args.finetuned}")
     train_set, valid_set, train_loader, valid_loader = train.mktrainval(args, logger)
     model = models.KNOWN_MODELS[args.model](head_size=len(valid_set.classes), zero_head=True)
-    checkpoint = torch.load(args.finetuned, map_location="cpu")
-
-    step = checkpoint["step"]
-    model.load_state_dict(checkpoint["model"])
-    logger.info(f"Resumed at step {step}")
+    model.load_from(np.load(f"{args.model}.npz"))
 
     logger.info("Moving model onto all GPUs")
     model = torch.nn.DataParallel(model)
+
+    checkpoint = torch.load(args.finetuned, map_location="cpu")
+    logger.info(f"Found saved model to resume from at '{args.finetuned}'")
+
+    step = checkpoint["step"]
+    logger.info(f"Resumed at step {step}")
+    model.load_state_dict(checkpoint["model"])
 
     model = model.to(device)
     train.run_eval(model, valid_loader, device, chrono, logger, step='end')
