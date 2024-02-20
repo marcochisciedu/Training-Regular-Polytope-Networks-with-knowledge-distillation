@@ -1,3 +1,6 @@
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+
 import bit_pytorch.train as train
 import torch
 import bit_pytorch.models as models
@@ -8,7 +11,8 @@ import numpy as np
 import bit_pytorch.lbtoolbox as lb
 import matplotlib.pyplot as plt
 import torchvision as tv
-from os.path import join as pjoin 
+from os.path import join as pjoin
+
 
 
 def argparser(known_models):
@@ -99,6 +103,13 @@ def get_datasets(args, logger):
 
   return train_set, valid_set, train_loader, valid_loader
 
+def kl_divergence(true_p, q):
+    true_prob = torch.nn.functional.softmax(true_p, dim= 1)
+    loss_1 = -torch.nn.functional.cross_entropy(input=true_p, target=true_prob)
+    loss_2 = torch.nn.functional.cross_entropy(input=q, target=true_prob)   
+    loss = loss_1 + loss_2
+    return loss
+
 def main(args):
     logger = logger = bit_common.setup_logger(args)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -120,7 +131,7 @@ def main(args):
     teacher = models.KNOWN_MODELS[args.model_teacher](head_size=len(valid_set.classes), zero_head=True)
 
     logger.info("Moving teacher model onto all GPUs")
-    teacher = torch.nn.DataParallel(teacher, device_ids=[0])    #da cambiare nel codice finale i dataset più grandi?
+    teacher = torch.nn.DataParallel(teacher)    
 
     logger.info(f"Loading teacher model from {args.finetuned}")
     checkpoint = torch.load(args.finetuned, map_location="cpu")
@@ -132,13 +143,14 @@ def main(args):
     student = models.KNOWN_MODELS[args.model_student](head_size=len(valid_set.classes), zero_head=True)
 
     logger.info("Moving student model onto all GPUs")
-    student = torch.nn.DataParallel(student, device_ids=[0])
+    student = torch.nn.DataParallel(student)
 
     #durante l'algoritmo ricordarsi di fare il mixup dei dati prima di usarli
 
     #validating student model
     student = student.to(device)
     #train.run_eval(student, valid_loader, device, chrono, logger, step='end')
+    logger.info(f"{student.summary()}")
     
 
 if __name__ == "__main__":
