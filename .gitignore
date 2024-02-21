@@ -3,5 +3,12 @@ __pycache__/
 
 #cifar10 dataset
 datadir/
+
+#results bit fine tuning
 bit_logs/
+
+#results knowledge distillation
 distillation/
+
+dataset.png
+learning rates.png

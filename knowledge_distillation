@@ -12,8 +12,8 @@ import bit_pytorch.lbtoolbox as lb
 import matplotlib.pyplot as plt
 import torchvision as tv
 from os.path import join as pjoin
-
-
+from torchsummary import summary
+import math
 
 def argparser(known_models):
   parser = argparse.ArgumentParser(description="Knowledge distillation")
@@ -44,13 +44,39 @@ def argparser(known_models):
                       help="Base learning-rate.")
   parser.add_argument("--batch_split", type=int, default=1,
                       help="Number of batches to compute gradient on before updating weights.")
+  parser.add_argument("--eval_every", type=int, default=None,
+                      help="Run prediction on validation set every so many steps."
+                      "Will always run one evaluation at the end of training.")
+  parser.add_argument("--fixed_classifier", type=bool, default= False,
+                      help= "True if the student model has a fixed classifier.")
   return parser
 
 def mixup(images, labels):
-    alpha = torch.rand(1)
+    alpha = torch.rand(1).to(images.device)
     mixedup_images = (alpha * images +
                      (1 - alpha) * torch.flip(images, dims=[0]))
     return mixedup_images, labels
+
+def get_lr(learning_rate_base, total_steps, warmup_learning_rate, warmup_steps, step):
+  if total_steps < warmup_steps:
+    raise ValueError("Total_steps must be larger or equal to warmup_steps.")
+  learning_rate = (0.5* learning_rate_base* (1 + torch.cos( math.pi
+                    * (torch.tensor(step, dtype=torch.float32 ) - warmup_steps)
+                    / float(total_steps - warmup_steps)
+                )
+            )
+        )
+
+  if warmup_steps > 0:
+    if learning_rate_base < warmup_learning_rate:
+      raise ValueError(
+                    "Learning_rate_base must be larger or equal to "
+                    "warmup_learning_rate."
+                )
+    slope = (learning_rate_base - warmup_learning_rate) / warmup_steps
+    warmup_rate = slope * torch.tensor(step, dtype=torch.float32 ) + warmup_learning_rate
+    learning_rate = torch.where(torch.tensor(step < warmup_steps,dtype=torch.bool), warmup_rate, learning_rate)
+    return torch.where(torch.tensor(step > total_steps,dtype=torch.bool), 0.0, learning_rate)
 
 def get_datasets(args, logger):
   """Returns train and validation datasets."""
@@ -110,6 +136,42 @@ def kl_divergence(true_p, q):
     loss = loss_1 + loss_2
     return loss
 
+def visualize_lrs(logger, args, total_steps, warmup_learning_rate,warmup_steps):
+  logger.info(f"Visualising learning rates in learning rates.png")
+  lrs = [get_lr(learning_rate_base= args.base_lr , total_steps= total_steps, warmup_learning_rate=warmup_learning_rate, warmup_steps=warmup_steps,step= step) for step in range(total_steps)]
+  plt.figure(1)
+  plt.plot(lrs)
+  plt.xlabel("Step", fontsize=14)
+  plt.ylabel("LR", fontsize=14)
+  plt.show()
+  plt.savefig('learning rates.png')
+
+def visualize_dataset(logger, train_loader):
+  logger.info(f"Visualising some images of the dataset in dataset.png")
+  sample_images, sample_labels = next(iter(train_loader))
+  mixed_up_images, _ = mixup(sample_images, sample_labels)
+  plt.figure(figsize=(10, 10), num=0)
+  for n in range(25):
+      ax = plt.subplot(5, 5, n + 1)
+      plt.imshow(mixed_up_images[n].squeeze().permute(1,2,0))
+      plt.axis("off")
+  plt.show()
+  plt.savefig('dataset.png')
+
+def dsimplex(num_classes=10, device='cuda'):
+    def simplex_coordinates(n, device):
+        t = torch.zeros((n + 1, n), device=device)
+        torch.eye(n, out=t[:-1,:], device=device)
+        val = (1.0 - torch.sqrt(1.0 + torch.tensor([n], device=device))) / n
+        t[-1,:].add_(val)
+        t.add_(-torch.mean(t, dim=0))
+        t.div_(torch.norm(t, p=2, dim=1, keepdim=True)+ 1e-8)
+        return t.cpu()
+
+    feat_dim = num_classes - 1
+    ds = simplex_coordinates(feat_dim, device)
+    return ds
+
 def main(args):
     logger = logger = bit_common.setup_logger(args)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -117,16 +179,7 @@ def main(args):
 
     train_set, valid_set, train_loader, valid_loader = get_datasets(args, logger)
 
-    logger.info(f"Visualising some images of the dataset in dataset.png")
-    sample_images, sample_labels = next(iter(train_loader))
-    mixed_up_images, _ = mixup(sample_images, sample_labels)
-    plt.figure(figsize=(10, 10))
-    for n in range(25):
-        ax = plt.subplot(5, 5, n + 1)
-        plt.imshow(mixed_up_images[n].squeeze().permute(1,2,0))
-        plt.axis("off")
-    plt.show()
-    plt.savefig('dataset.png')
+    visualize_dataset(logger, train_loader)
 
     teacher = models.KNOWN_MODELS[args.model_teacher](head_size=len(valid_set.classes), zero_head=True)
 
@@ -138,19 +191,104 @@ def main(args):
     teacher.load_state_dict(checkpoint["model"])
 
     teacher = teacher.to(device)
-    #train.run_eval(teacher, valid_loader, device, chrono, logger, step='end')   #validating teacher model
+    for p in teacher.parameters():
+      p.requires_grad = False
+    teacher.eval()
+    train.run_eval(teacher, valid_loader, device, chrono, logger, step='end')   #validating teacher model
 
     student = models.KNOWN_MODELS[args.model_student](head_size=len(valid_set.classes), zero_head=True)
+    if args.fixed_classifier is True:
+      fixed_weights = dsimplex(num_classes=len(valid_set.classes), device=device)
+      student.fc2.weight.requires_grad = False  # set no gradient for the fixed classifier
+      student.fc2.weight.copy_(fixed_weights)   # set the weights for the classifier
+    summary(student.cuda(), (3, 128, 128))      #summary of the student model
 
     logger.info("Moving student model onto all GPUs")
     student = torch.nn.DataParallel(student)
+    train.run_eval(student, valid_loader, device, chrono, logger, step='end')
 
-    #durante l'algoritmo ricordarsi di fare il mixup dei dati prima di usarli
-
-    #validating student model
     student = student.to(device)
-    #train.run_eval(student, valid_loader, device, chrono, logger, step='end')
-    logger.info(f"{student.summary()}")
+
+    optimizer = torch.optim.Adam(student.parameters(), lr=args.base_lr, weight_decay= args.weight_decay)
+    optimizer.zero_grad()
+
+    total_steps = int(len(train_set)/ args.batch * args.epochs)
+    warmup_steps= int(total_steps/5)  #per cifar10 è così, da cambiare
+    warmup_learning_rate = 0
+    visualize_lrs(logger, args,total_steps,warmup_learning_rate, warmup_steps)
+    
+    student.train()
+    step=0
+
+    savename = pjoin(args.logdir, args.name, "bit.pth.tar")
+    try:
+      logger.info(f"Student model will be saved in '{savename}'")
+      checkpoint = torch.load(savename, map_location="cpu")
+      logger.info(f"Found saved student model to resume from at '{savename}'")
+
+      step = checkpoint["step"]
+      student.load_state_dict(checkpoint["model"])
+      optimizer.load_state_dict(checkpoint["optim"])
+      logger.info(f"Resumed at step {step}")
+    except FileNotFoundError:
+      logger.info("Knowledge distillation")
+
+    logger.info("Starting training!")
+    accum_steps = 0
+
+
+    for x, y in train.recycle(train_loader):
+      #stop training if over.
+      if step >= total_steps:
+        break 
+      # Schedule sending to GPU(s)
+      x = x.to(device, non_blocking=True)
+      y = y.to(device, non_blocking=True)
+
+      # Update learning-rate
+      lr = get_lr(learning_rate_base= args.base_lr , total_steps= total_steps, warmup_learning_rate=warmup_learning_rate, warmup_steps=warmup_steps,step= step)
+      for param_group in optimizer.param_groups:
+        param_group["lr"] = lr
+
+      x, y = mixup(x,y)
+
+        # compute output
+      with torch.no_grad():
+        teacher_prediction = teacher(x)
+      student_prediction = student(x)
+      c = kl_divergence(teacher_prediction/args.temperature ,student_prediction/args.temperature)
+      c_num = float(c.data.cpu().numpy())  # Also ensures a sync point.
+
+      # Accumulate grads
+      (c / args.batch_split).backward()
+      accum_steps += 1
+
+      accstep = f" ({accum_steps}/{args.batch_split})" if args.batch_split > 1 else ""
+      logger.info(f"[step {step}/{total_steps}{accstep}]: loss={c_num:.5f} (lr={lr:.1e})")  
+      logger.flush()
+
+      # Update params
+      if accum_steps == args.batch_split:
+        #gradient clipping
+        torch.nn.utils.clip_grad_norm_(student.parameters(), args.clip_threshold)
+
+        optimizer.step()
+        optimizer.zero_grad()
+        step += 1
+        accum_steps = 0
+
+        # Run evaluation and save the model.
+        if args.eval_every and step % args.eval_every == 0:
+          train.run_eval(student, valid_loader, device, chrono, logger, step)
+          if args.save:
+              torch.save({
+                  "step": step,
+                  "model": student.state_dict(),
+                  "optim" : optimizer.state_dict(),
+              }, savename)
+
+    #validating student model at the end of training
+    train.run_eval(student, valid_loader, device, chrono, logger, step='end')
     
 
 if __name__ == "__main__":
