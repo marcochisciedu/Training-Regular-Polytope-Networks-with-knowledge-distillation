@@ -174,6 +174,11 @@ def dsimplex(num_classes=10, device='cuda'):
 
 def main(args):
     logger = logger = bit_common.setup_logger(args)
+
+    # Lets cuDNN benchmark conv implementations and choose the fastest.
+    # Only good if sizes stay the same within the main loop!
+    torch.backends.cudnn.benchmark = True
+
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     chrono = lb.Chrono()
 
@@ -194,7 +199,7 @@ def main(args):
     for p in teacher.parameters():
       p.requires_grad = False
     teacher.eval()
-    train.run_eval(teacher, valid_loader, device, chrono, logger, step='end')   #validating teacher model
+    train.run_eval(teacher, valid_loader, device, chrono, logger, step='start')   #validating teacher model
 
     student = models.KNOWN_MODELS[args.model_student](head_size=len(valid_set.classes), zero_head=True)
     if args.fixed_classifier is True:
@@ -205,7 +210,7 @@ def main(args):
 
     logger.info("Moving student model onto all GPUs")
     student = torch.nn.DataParallel(student)
-    train.run_eval(student, valid_loader, device, chrono, logger, step='end')
+    train.run_eval(student, valid_loader, device, chrono, logger, step='start')
 
     student = student.to(device)
 
@@ -252,7 +257,7 @@ def main(args):
 
       x, y = mixup(x,y)
 
-        # compute output
+      # compute output
       with torch.no_grad():
         teacher_prediction = teacher(x)
       student_prediction = student(x)
