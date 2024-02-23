@@ -16,6 +16,9 @@
 """Fine-tune a BiT model on some downstream dataset."""
 #!/usr/bin/env python3
 # coding: utf-8
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+
 from os.path import join as pjoin  # pylint: disable=g-importing-member
 import time
 
