@@ -204,8 +204,8 @@ def main(args):
     student = models.KNOWN_MODELS[args.model_student](head_size=len(valid_set.classes), zero_head=True)
     if args.fixed_classifier is True:
       fixed_weights = dsimplex(num_classes=len(valid_set.classes), device=device)
-      student.fc2.weight.requires_grad = False  # set no gradient for the fixed classifier
-      student.fc2.weight.copy_(fixed_weights)   # set the weights for the classifier
+      student.head.weight.requires_grad = False  # set no gradient for the fixed classifier
+      student.head.weight.copy_(fixed_weights)   # set the weights for the classifier
     summary(student.cuda(), (3, 128, 128))      #summary of the student model
 
     logger.info("Moving student model onto all GPUs")
