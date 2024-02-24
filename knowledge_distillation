@@ -3,6 +3,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 import bit_pytorch.train as train
 import torch
+from collections import OrderedDict
 import bit_pytorch.models as models
 import argparse
 import bit_hyperrule
@@ -202,14 +203,26 @@ def main(args):
     train.run_eval(teacher, valid_loader, device, chrono, logger, step='start')   #validating teacher model
 
     student = models.KNOWN_MODELS[args.model_student](head_size=len(valid_set.classes), zero_head=True)
+    sample_images, sample_labels = next(iter(train_loader))
     if args.fixed_classifier is True:
       fixed_weights = dsimplex(num_classes=len(valid_set.classes), device=device)
-      student.head.weight.requires_grad = False  # set no gradient for the fixed classifier
-      student.head.weight.copy_(fixed_weights)   # set the weights for the classifier
+      student.head=torch.nn.Sequential(OrderedDict([
+        ('gn', torch.nn.GroupNorm(32, 2048*1)),    #*1 è width di ResNet50x1
+        ('relu', torch.nn.ReLU(inplace=True)),
+        ('avg', torch.nn.AdaptiveAvgPool2d(output_size=1)),
+        ('flatten', torch.nn.Flatten()),
+        ('fc1', torch.nn.Linear(2048*1, len(valid_set.classes)-1, bias=False)),  #*1
+        ('fc2', torch.nn.Linear(len(valid_set.classes)-1 , len(valid_set.classes), bias=False)),
+        ('unflatten', torch.nn.Unflatten(1, (10,1,1))),
+      ]))
+
+      student.head.fc2.weight.requires_grad = False  # set no gradient for the fixed classifier
+      student.head.fc2.weight.copy_(fixed_weights)   # set the weights for the classifier
     summary(student.cuda(), (3, 128, 128))      #summary of the student model
 
     logger.info("Moving student model onto all GPUs")
     student = torch.nn.DataParallel(student)
+
     train.run_eval(student, valid_loader, device, chrono, logger, step='start')
 
     student = student.to(device)
