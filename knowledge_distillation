@@ -187,7 +187,7 @@ def main(args):
 
     visualize_dataset(logger, train_loader)
 
-    teacher = models.KNOWN_MODELS[args.model_teacher](head_size=len(valid_set.classes), zero_head=True)
+    teacher = models.KNOWN_MODELS[args.model_teacher](head_size=len(valid_set.classes))
 
     logger.info("Moving teacher model onto all GPUs")
     teacher = torch.nn.DataParallel(teacher)    
