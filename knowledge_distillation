@@ -203,11 +203,10 @@ def main(args):
     train.run_eval(teacher, valid_loader, device, chrono, logger, step='start')   #validating teacher model
 
     student = models.KNOWN_MODELS[args.model_student](head_size=len(valid_set.classes), zero_head=True)
-    sample_images, sample_labels = next(iter(train_loader))
     if args.fixed_classifier is True:
       fixed_weights = dsimplex(num_classes=len(valid_set.classes), device=device)
       student.head=torch.nn.Sequential(OrderedDict([
-        ('gn', torch.nn.GroupNorm(32, 2048*1)),    #*1 è width di ResNet50x1
+        ('gn', torch.nn.GroupNorm(32, 2048*1)),    #*1: width of ResNet50x1
         ('relu', torch.nn.ReLU(inplace=True)),
         ('avg', torch.nn.AdaptiveAvgPool2d(output_size=1)),
         ('flatten', torch.nn.Flatten()),
@@ -231,7 +230,7 @@ def main(args):
     optimizer.zero_grad()
 
     total_steps = int(len(train_set)/ args.batch * args.epochs)
-    warmup_steps= int(total_steps/5)  #per cifar10 è così, da cambiare
+    warmup_steps= int(total_steps/5)  #warmup steps for cifar10, can be changed
     warmup_learning_rate = 0
     visualize_lrs(logger, args,total_steps,warmup_learning_rate, warmup_steps)
     
