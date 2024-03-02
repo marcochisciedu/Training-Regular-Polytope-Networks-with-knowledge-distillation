@@ -10,5 +10,4 @@ bit_logs/
 #results knowledge distillation
 distillation/
 
-dataset.png
-learning rates.png
+*.png

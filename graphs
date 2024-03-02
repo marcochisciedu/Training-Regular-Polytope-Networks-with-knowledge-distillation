@@ -1,0 +1,64 @@
+import argparse
+import matplotlib.pyplot as plt
+import os
+
+def argparser():
+  parser = argparse.ArgumentParser(description="Creating graph")
+  parser.add_argument("--name", required=True,
+                      help="Name of this run. Used for monitoring and checkpointing.")
+  parser.add_argument("--log", required=True,
+                      help="Path of the training log")
+  parser.add_argument("--batch", type=int, default=512,
+                      help="Batch size.")
+  parser.add_argument("--training_size", type=int, default=50000,
+                      help="Training set size.")                    
+  parser.add_argument("--epochs", type=int, default=300,
+                      help="Epochs")
+  parser.add_argument("--eval_every", type=int, default=None,
+                      help="Run prediction on validation set every so many steps."
+                      "Will always run one evaluation at the end of training.")
+  return parser
+
+def main(args):
+    with open(args.log, 'r') as txt:
+        list_of_lines = txt.readlines()
+    val_steps=[]
+    val_losses=[]
+    val_top1=[]
+    val_top5=[]
+    for line in list_of_lines:
+        if "top1" in line.split(" "):
+          if "start" not in line:
+            val_steps.append(''.join(line.split("Validation@")[1].split(" loss")[0]))
+            val_losses.append(float(''.join(line.split("loss ")[1].split(", top1")[0])))
+            val_top1.append(float(''.join(line.split("top1 ")[1].split("%, top5")[0])))
+            val_top5.append(float(''.join(line.split("top5 ")[1].split("%")[0])))
+
+    total_steps = int(args.training_size/ args.batch * args.epochs)
+    val_steps[-1]=total_steps  #end=total_steps
+    val_steps= list(map(lambda x:int(x)/(args.training_size/args.batch) ,val_steps))
+
+    plt.figure(figsize=(18,5))
+    plt.subplot(131)
+    plt.plot(val_steps, val_losses)
+    plt.xlabel("epochs")
+    plt.ylabel("validation loss")
+
+    plt.subplot(132)
+    plt.plot(val_steps, val_top1)
+    plt.xlabel("epochs")
+    plt.ylabel("top 1 validation accuracy %")
+
+    plt.subplot(133)
+    plt.plot(val_steps, val_top5)
+    plt.xlabel("epochs")
+    plt.ylabel("top 5 validation accuracy %")
+
+
+    plt.show()
+    plt.savefig(args.name)
+
+
+if __name__ == "__main__":
+  parser = argparser()
+  main(parser.parse_args())

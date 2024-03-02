@@ -204,15 +204,16 @@ def main(args):
 
     student = models.KNOWN_MODELS[args.model_student](head_size=len(valid_set.classes), zero_head=True)
     if args.fixed_classifier is True:
+      wf=int(args.model_student[-1])
       fixed_weights = dsimplex(num_classes=len(valid_set.classes), device=device)
       student.head=torch.nn.Sequential(OrderedDict([
-        ('gn', torch.nn.GroupNorm(32, 2048*1)),    #*1: width of ResNet50x1
+        ('gn', torch.nn.GroupNorm(32, 2048*wf)),    
         ('relu', torch.nn.ReLU(inplace=True)),
         ('avg', torch.nn.AdaptiveAvgPool2d(output_size=1)),
         ('flatten', torch.nn.Flatten()),
-        ('fc1', torch.nn.Linear(2048*1, len(valid_set.classes)-1, bias=False)),  #*1
+        ('fc1', torch.nn.Linear(2048*wf, len(valid_set.classes)-1, bias=False)),  
         ('fc2', torch.nn.Linear(len(valid_set.classes)-1 , len(valid_set.classes), bias=False)),
-        ('unflatten', torch.nn.Unflatten(1, (10,1,1))),
+        ('unflatten', torch.nn.Unflatten(1, (len(valid_set.classes),1,1))),  
       ]))
 
       student.head.fc2.weight.requires_grad = False  # set no gradient for the fixed classifier
