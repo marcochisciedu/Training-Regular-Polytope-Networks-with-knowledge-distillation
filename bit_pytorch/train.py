@@ -17,10 +17,11 @@
 #!/usr/bin/env python3
 # coding: utf-8
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 from os.path import join as pjoin  # pylint: disable=g-importing-member
 import time
+import scipy
 
 import numpy as np
 import torch
@@ -75,8 +76,8 @@ def mktrainval(args, logger):
     train_set = tv.datasets.ImageFolder(pjoin(args.datadir, "train"), train_tx)
     valid_set = tv.datasets.ImageFolder(pjoin(args.datadir, "val"), val_tx)
   elif args.dataset == 'oxford_flowers102':
-    train_set = tv.datasets.Flowers102(args.datadir, transform=train_tx, train=True, download=False)
-    valid_set = tv.datasets.Flowers102(args.datadir, transform=val_tx, train=False, download=False)
+    train_set = tv.datasets.Flowers102(args.datadir, transform=train_tx, split="train", download=True)
+    valid_set = tv.datasets.Flowers102(args.datadir, transform=val_tx, split="val", download=True)
   else:
     raise ValueError(f"Sorry, we have not spent time implementing the "
                      f"{args.dataset} dataset in the PyTorch codebase. "
@@ -174,7 +175,10 @@ def main(args):
   train_set, valid_set, train_loader, valid_loader = mktrainval(args, logger)
 
   logger.info(f"Loading model from {args.model}.npz")
-  model = models.KNOWN_MODELS[args.model](head_size=len(valid_set.classes), zero_head=True)
+  if args.dataset == "cifar10":
+    model = models.KNOWN_MODELS[args.model](head_size=len(valid_set.classes), zero_head=True)
+  elif args.dataset == "oxford_flowers102":
+    model = models.KNOWN_MODELS[args.model](head_size=102, zero_head=True)
   model.load_from(np.load(f"{args.model}.npz"))
 
   logger.info("Moving model onto all GPUs")
