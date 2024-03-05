@@ -283,6 +283,12 @@ def main(args):
 
     # Final eval at end of training.
     run_eval(model, valid_loader, device, chrono, logger, step='end')
+    if args.save:
+            torch.save({
+                "step": step,
+                "model": model.state_dict(),
+                "optim" : optim.state_dict(),
+            }, savename)
 
   logger.info(f"Timings:\n{chrono}")
 
