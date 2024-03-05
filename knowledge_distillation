@@ -102,6 +102,9 @@ def get_datasets(args, logger):
   elif args.dataset == "imagenet2012":
     train_set = tv.datasets.ImageFolder(pjoin(args.datadir, "train"), train_tx)
     valid_set = tv.datasets.ImageFolder(pjoin(args.datadir, "val"), val_tx)
+  elif args.dataset == 'oxford_flowers102':
+    train_set = tv.datasets.Flowers102(args.datadir, transform=train_tx, split="train", download=True)
+    valid_set = tv.datasets.Flowers102(args.datadir, transform=val_tx, split="val", download=True)
   else:
     raise ValueError(f"Sorry, we have not spent time implementing the "
                      f"{args.dataset} dataset in the PyTorch codebase. "
@@ -186,8 +189,11 @@ def main(args):
     train_set, valid_set, train_loader, valid_loader = get_datasets(args, logger)
 
     visualize_dataset(logger, train_loader)
-
-    teacher = models.KNOWN_MODELS[args.model_teacher](head_size=len(valid_set.classes))
+    if args.dataset == "cifar10":
+      num_classes=len(valid_set.classes)
+    elif args.dataset == "oxford_flowers102":
+      num_classes=102
+    teacher = models.KNOWN_MODELS[args.model_teacher](head_size=num_classes)
 
     logger.info("Moving teacher model onto all GPUs")
     teacher = torch.nn.DataParallel(teacher)    
@@ -202,18 +208,18 @@ def main(args):
     teacher.eval()
     train.run_eval(teacher, valid_loader, device, chrono, logger, step='start')   #validating teacher model
 
-    student = models.KNOWN_MODELS[args.model_student](head_size=len(valid_set.classes), zero_head=True)
+    student = models.KNOWN_MODELS[args.model_student](head_size=num_classes, zero_head=True)
     if args.fixed_classifier is True:
       wf=int(args.model_student[-1])
-      fixed_weights = dsimplex(num_classes=len(valid_set.classes), device=device)
+      fixed_weights = dsimplex(num_classes=num_classes, device=device)
       student.head=torch.nn.Sequential(OrderedDict([
         ('gn', torch.nn.GroupNorm(32, 2048*wf)),    
         ('relu', torch.nn.ReLU(inplace=True)),
         ('avg', torch.nn.AdaptiveAvgPool2d(output_size=1)),
         ('flatten', torch.nn.Flatten()),
-        ('fc1', torch.nn.Linear(2048*wf, len(valid_set.classes)-1, bias=False)),  
-        ('fc2', torch.nn.Linear(len(valid_set.classes)-1 , len(valid_set.classes), bias=False)),
-        ('unflatten', torch.nn.Unflatten(1, (len(valid_set.classes),1,1))),  
+        ('fc1', torch.nn.Linear(2048*wf, num_classes-1, bias=False)),  
+        ('fc2', torch.nn.Linear(num_classes-1 , num_classes, bias=False)),
+        ('unflatten', torch.nn.Unflatten(1, (num_classes,1,1))),  
       ]))
 
       student.head.fc2.weight.requires_grad = False  # set no gradient for the fixed classifier
@@ -231,7 +237,10 @@ def main(args):
     optimizer.zero_grad()
 
     total_steps = int(len(train_set)/ args.batch * args.epochs)
-    warmup_steps= int(total_steps/5)  #warmup steps for cifar10, can be changed
+    if args.dataset == "cifar10":
+      warmup_steps= int(total_steps/5)  #warmup steps for cifar10, can be changed
+    elif args.dataset == "oxford_flowers102":
+      warmup_steps= 5000
     warmup_learning_rate = 0
     visualize_lrs(logger, args,total_steps,warmup_learning_rate, warmup_steps)
     
