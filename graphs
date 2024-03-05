@@ -25,35 +25,40 @@ def main(args):
     val_steps=[]
     val_losses=[]
     val_top1=[]
-    val_top5=[]
+    train_steps=[]
+    train_losses=[]
     for line in list_of_lines:
         if "top1" in line.split(" "):
           if "start" not in line:
             val_steps.append(''.join(line.split("Validation@")[1].split(" loss")[0]))
             val_losses.append(float(''.join(line.split("loss ")[1].split(", top1")[0])))
             val_top1.append(float(''.join(line.split("top1 ")[1].split("%, top5")[0])))
-            val_top5.append(float(''.join(line.split("top5 ")[1].split("%")[0])))
-
+        if "[step" in line.split(" ") and int(''.join(line.split("[step ")[1].split("/195312")[0]))%500 ==0:  #save a value every 500 steps
+          if ''.join(line.split("[step ")[1].split("/195312")[0]) not in train_steps:
+            train_steps.append(''.join(line.split("[step ")[1].split("/195312")[0]))
+            train_losses.append(float(''.join(line.split("loss=")[1].split(" (lr=")[0])))
+           
     total_steps = int(args.training_size/ args.batch * args.epochs)
     val_steps[-1]=total_steps  #end=total_steps
     val_steps= list(map(lambda x:int(x)/(args.training_size/args.batch) ,val_steps))
 
+    train_steps= list(map(lambda x:int(x)/(args.training_size/args.batch) ,train_steps))
+
     plt.figure(figsize=(18,5))
     plt.subplot(131)
+    plt.plot(train_steps, train_losses)
+    plt.xlabel("epochs")
+    plt.ylabel("training loss")
+
+    plt.subplot(132)
     plt.plot(val_steps, val_losses)
     plt.xlabel("epochs")
     plt.ylabel("validation loss")
 
-    plt.subplot(132)
+    plt.subplot(133)
     plt.plot(val_steps, val_top1)
     plt.xlabel("epochs")
     plt.ylabel("top 1 validation accuracy %")
-
-    plt.subplot(133)
-    plt.plot(val_steps, val_top5)
-    plt.xlabel("epochs")
-    plt.ylabel("top 5 validation accuracy %")
-
 
     plt.show()
     plt.savefig(args.name)
