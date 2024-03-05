@@ -87,10 +87,12 @@ def get_datasets(args, logger):
       tv.transforms.RandomCrop((crop, crop)),
       tv.transforms.RandomHorizontalFlip(),
       tv.transforms.ToTensor(),
+      tv.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
   ])
   val_tx = tv.transforms.Compose([
       tv.transforms.Resize((crop, crop)),
       tv.transforms.ToTensor(),
+      tv.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
   ])
 
   if args.dataset == "cifar10":
@@ -108,10 +110,12 @@ def get_datasets(args, logger):
       tv.transforms.RandomCrop((128, 128)),
       tv.transforms.RandomHorizontalFlip(),
       tv.transforms.ToTensor(),
+      tv.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
     ])
     val_tx = tv.transforms.Compose([
       tv.transforms.Resize((128,128)),
       tv.transforms.ToTensor(),
+      tv.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
     ])
     train_set = tv.datasets.Flowers102(args.datadir, transform=train_tx, split="train", download=True)
     valid_set = tv.datasets.Flowers102(args.datadir, transform=val_tx, split="val", download=True)
