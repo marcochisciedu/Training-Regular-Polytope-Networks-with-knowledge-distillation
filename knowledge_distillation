@@ -254,7 +254,7 @@ def main(args):
     if args.dataset == "cifar10":
       warmup_steps= int(total_steps/5)  #warmup steps for cifar10, can be changed
     elif args.dataset == "oxford_flowers102":
-      warmup_steps= 1500
+      warmup_steps= 5000
     warmup_learning_rate = 0
     visualize_lrs(logger, args,total_steps,warmup_learning_rate, warmup_steps)
     
