@@ -112,7 +112,6 @@ def get_datasets(args, logger):
         tv.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
       ])
     else:tv.transforms.Compose([
-        tv.transforms.Resize((224, 224)),
         tv.transforms.ToTensor(),
       ])
     val_tx = tv.transforms.Compose([
@@ -214,19 +213,23 @@ def dsimplex(num_classes=10, device='cuda'):
 def get_tx(teaching):
   if teaching== 'fix_cc':
       teacher_tx = tv.transforms.Compose([
+        tv.transforms.Resize((180, 180)),
         tv.transforms.CenterCrop((128, 128)),
         tv.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
       ])
       student_tx = tv.transforms.Compose([
+        tv.transforms.Resize((180, 180)), 
         tv.transforms.RandomCrop((128, 128)),
         tv.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
       ])
   elif teaching == 'ind_rc':
       teacher_tx = tv.transforms.Compose([
+        tv.transforms.Resize((180, 180)), 
         tv.transforms.RandomCrop((128, 128)),
         tv.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
       ])
       student_tx = tv.transforms.Compose([
+        tv.transforms.Resize((180, 180)), 
         tv.transforms.RandomCrop((128, 128)),
         tv.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
       ])
