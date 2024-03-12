@@ -34,7 +34,7 @@ def read_log(log, args):
           val_steps.append(''.join(line.split("Validation@")[1].split(" loss")[0]))
           val_losses.append(float(''.join(line.split("loss ")[1].split(", top1")[0])))
           val_top1.append(float(''.join(line.split("top1 ")[1].split("%, top5")[0])))
-      if "[step" in line.split(" ") and int(''.join(line.split("[step ")[1].split("/")[0]))%10 ==0:  #save a value every 500 steps
+      if "[step" in line.split(" ") and int(''.join(line.split("[step ")[1].split("/")[0]))%500 ==0:  #save a value every 500 steps
         if ''.join(line.split("[step ")[1].split("/")[0]) not in train_steps:
           train_steps.append(''.join(line.split("[step ")[1].split("/")[0]))
           train_losses.append(float(''.join(line.split("loss=")[1].split(" (lr=")[0])))
@@ -62,7 +62,7 @@ def main(args):
       total_train_losses.append(train_losses)
 
 
-    names = ["Learnable classifier", "Fixed classifier"]
+    names = ["Learnable Classifier", "Fixed classifier" ]
     assert len(names)==num_logs
     plt.figure(figsize=(18,5))
     plt.subplot(131)
