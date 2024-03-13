@@ -1,8 +1,9 @@
 *.npz
 __pycache__/
 
-#cifar10 dataset
+#datasets
 datadir/
+data/
 
 #results bit fine tuning
 bit_logs/
