@@ -25,30 +25,30 @@ def get_loader(args):
     ])
 
     if args.dataset == "cifar10":
-        trainset = datasets.CIFAR10(root="./data",
+        trainset = datasets.CIFAR10(root=args.datadir,
                                     train=True,
                                     download=True,
                                     transform=transform_train)
-        testset = datasets.CIFAR10(root="./data",
+        testset = datasets.CIFAR10(root=args.datadir,
                                    train=False,
                                    download=True,
                                    transform=transform_test) if args.local_rank in [-1, 0] else None
 
     elif args.dataset == "cifar100":
-        trainset = datasets.CIFAR100(root="./data",
+        trainset = datasets.CIFAR100(root=args.datadir,
                                      train=True,
                                      download=True,
                                      transform=transform_train)
-        testset = datasets.CIFAR100(root="./data",
+        testset = datasets.CIFAR100(root=args.datadir,
                                     train=False,
                                     download=True,
                                     transform=transform_test) if args.local_rank in [-1, 0] else None
     elif args.dataset == 'oxford_flowers102':
-        trainset = datasets.Flowers102(root="./data",
+        trainset = datasets.Flowers102(root=args.datadir,
                                      split="train",
                                      download=True,
                                      transform=transform_train)
-        testset = datasets.Flowers102(root="./data",
+        testset = datasets.Flowers102(root=args.datadir,
                                     split="val",
                                     download=True,
                                     transform=transform_test) if args.local_rank in [-1, 0] else None

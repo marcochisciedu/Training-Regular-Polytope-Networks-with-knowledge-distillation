@@ -241,6 +241,8 @@ def main():
                         help="Name of this run. Used for monitoring.")
     parser.add_argument("--dataset", choices=["cifar10", "cifar100", "oxford_flowers102"], default="cifar10",
                         help="Which downstream task.")
+    parser.add_argument("--datadir", required=True,
+                      help="Path to the ImageNet data folder, preprocessed for torchvision.")
     parser.add_argument("--model_type", choices=["ViT-B_16", "ViT-B_32", "ViT-L_16",
                                                  "ViT-L_32", "ViT-H_14", "R50-ViT-B_16"],
                         default="ViT-B_16",

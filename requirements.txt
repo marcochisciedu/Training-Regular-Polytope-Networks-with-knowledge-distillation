@@ -4,3 +4,6 @@ numpy
 tqdm
 tensorboard
 ml-collections
+matplotlib
+torchsummary
+scipy
