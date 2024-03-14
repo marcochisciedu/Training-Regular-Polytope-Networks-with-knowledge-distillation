@@ -5,8 +5,10 @@ __pycache__/
 datadir/
 data/
 
-#results bit fine tuning
+#results fine tuning
 bit_logs/
+vit_logs/
+logs/
 
 #results knowledge distillation
 distillation/
