@@ -62,7 +62,7 @@ def main(args):
       total_train_losses.append(train_losses)
 
 
-    names = ["Learnable Classifier", "Fixed classifier" ]
+    names = ["ViT 10000 epochs"]
     assert len(names)==num_logs
     plt.figure(figsize=(18,5))
     plt.subplot(131)

@@ -13,16 +13,15 @@ import bit_pytorch.lbtoolbox as lb
 import matplotlib.pyplot as plt
 import torchvision as tv
 from os.path import join as pjoin
-from torchsummary import summary
 import math
 from vit_models.modeling import VisionTransformer, CONFIGS
 
 def argparser(known_models):
   parser = argparse.ArgumentParser(description="Knowledge distillation")
   parser.add_argument("--model_teacher", choices=list(known_models) + list(CONFIGS),
-                      help="Which variant to use; BiT-M gives best results.")
+                      help="Which variant to use")
   parser.add_argument("--model_student", choices=list(known_models) + list(CONFIGS),
-                      help="Which variant to use; BiT-M gives best results.")
+                      help="Which variant to use")
   parser.add_argument("--dataset", choices=list(bit_hyperrule.known_dataset_sizes.keys()),
                       help="Choose the dataset. It should be easy to add your own! "
                       "Don't forget to set --datadir if necessary.")
@@ -268,7 +267,6 @@ def main(args):
     config_student = CONFIGS[args.model_student]
     student = VisionTransformer(config_student, img_size, zero_head=True, num_classes=num_classes)
     if args.fixed_classifier is True:
-      wf=int(args.model_student[-1])
       fixed_weights = dsimplex(num_classes=num_classes, device=device)
       student.head=torch.nn.Sequential(OrderedDict([
         ('fc1', torch.nn.Linear(config_student.hidden_size, num_classes-1, bias=False)),  
@@ -292,7 +290,7 @@ def main(args):
     if args.dataset == "cifar10":
       warmup_steps= int(total_steps/5)  #warmup steps for cifar10, can be changed
     elif args.dataset == "oxford_flowers102":
-      warmup_steps= 1500
+      warmup_steps= 5000
     warmup_learning_rate = 0
     visualize_lrs(logger, args,total_steps,warmup_learning_rate, warmup_steps)
     
