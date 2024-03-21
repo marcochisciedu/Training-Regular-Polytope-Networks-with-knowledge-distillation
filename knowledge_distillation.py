@@ -207,6 +207,10 @@ def main(args):
       num_classes=len(valid_set.classes)
     elif args.dataset == "oxford_flowers102":
       num_classes=102
+    elif args.dataset == "oxford_iiit_pet":
+      num_classes=37
+    elif args.dataset == "food-101":
+      num_classes=101
     teacher = models.KNOWN_MODELS[args.model_teacher](head_size=num_classes)
 
     logger.info("Moving teacher model onto all GPUs")
