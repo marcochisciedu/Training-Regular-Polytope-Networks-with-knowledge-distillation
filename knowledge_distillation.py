@@ -81,44 +81,44 @@ def get_lr(learning_rate_base, total_steps, warmup_learning_rate, warmup_steps, 
 
 def get_datasets(args, logger):
   """Returns train and validation datasets."""
-  precrop, crop = bit_hyperrule.get_resolution_from_dataset(args.dataset)      
   train_tx = tv.transforms.Compose([
-      tv.transforms.Resize((precrop, precrop)),
-      tv.transforms.RandomCrop((crop, crop)),
-      tv.transforms.RandomHorizontalFlip(),
-      tv.transforms.ToTensor(),
-      tv.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-  ])
-  val_tx = tv.transforms.Compose([
-      tv.transforms.Resize((crop, crop)),
-      tv.transforms.ToTensor(),
-      tv.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-  ])
-
-  if args.dataset == "cifar10":
-    train_set = tv.datasets.CIFAR10(args.datadir, transform=train_tx, train=True, download=True)
-    valid_set = tv.datasets.CIFAR10(args.datadir, transform=val_tx, train=False, download=True)
-  elif args.dataset == "cifar100":
-    train_set = tv.datasets.CIFAR100(args.datadir, transform=train_tx, train=True, download=True)
-    valid_set = tv.datasets.CIFAR100(args.datadir, transform=val_tx, train=False, download=True)
-  elif args.dataset == "imagenet2012":
-    train_set = tv.datasets.ImageFolder(pjoin(args.datadir, "train"), train_tx)
-    valid_set = tv.datasets.ImageFolder(pjoin(args.datadir, "val"), val_tx)
-  elif args.dataset == 'oxford_flowers102':
-    train_tx = tv.transforms.Compose([
       tv.transforms.Resize((160, 160)),
       tv.transforms.RandomCrop((128, 128)),
       tv.transforms.RandomHorizontalFlip(),
       tv.transforms.ToTensor(),
       tv.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
     ])
-    val_tx = tv.transforms.Compose([
+  val_tx = tv.transforms.Compose([
       tv.transforms.Resize((128,128)),
       tv.transforms.ToTensor(),
       tv.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
     ])
+
+  if args.dataset == "cifar10":
+    precrop, crop = bit_hyperrule.get_resolution_from_dataset(args.dataset)      
+    train_tx = tv.transforms.Compose([
+        tv.transforms.Resize((precrop, precrop)),
+        tv.transforms.RandomCrop((crop, crop)),
+        tv.transforms.RandomHorizontalFlip(),
+        tv.transforms.ToTensor(),
+        tv.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+    ])
+    val_tx = tv.transforms.Compose([
+        tv.transforms.Resize((crop, crop)),
+        tv.transforms.ToTensor(),
+        tv.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+    ])
+    train_set = tv.datasets.CIFAR10(args.datadir, transform=train_tx, train=True, download=True)
+    valid_set = tv.datasets.CIFAR10(args.datadir, transform=val_tx, train=False, download=True)
+  elif args.dataset == 'oxford_flowers102':
     train_set = tv.datasets.Flowers102(args.datadir, transform=train_tx, split="train", download=True)
     valid_set = tv.datasets.Flowers102(args.datadir, transform=val_tx, split="val", download=True)
+  elif args.dataset == "oxford_iiit_pet":
+    train_set = tv.datasets.OxfordIIITPet(root='/andromeda/datasets/', split = 'trainval', transform = train_tx)
+    valid_set = tv.datasets.OxfordIIITPet(root='/andromeda/datasets/', split = 'test', transform = val_tx)
+  elif args.dataset == "food-101":
+    train_set = tv.datasets.Food101(root='/andromeda/datasets/CoOp/', split= "train", transform= train_tx)
+    valid_set = tv.datasets.Food101(root='/andromeda/datasets/CoOp/', split= "test", transform= val_tx)
   else:
     raise ValueError(f"Sorry, we have not spent time implementing the "
                      f"{args.dataset} dataset in the PyTorch codebase. "
@@ -255,6 +255,10 @@ def main(args):
       warmup_steps= int(total_steps/5)  #warmup steps for cifar10, can be changed
     elif args.dataset == "oxford_flowers102":
       warmup_steps= 5000
+    elif args.dataset == "oxford_iiit_pet":
+      warmup_steps = 1500
+    elif args.dataset == "food-101":
+      warmup_steps = 5000
     warmup_learning_rate = 0
     visualize_lrs(logger, args,total_steps,warmup_learning_rate, warmup_steps)
     

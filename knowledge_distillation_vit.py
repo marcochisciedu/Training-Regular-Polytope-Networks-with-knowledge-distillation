@@ -30,7 +30,7 @@ def argparser(known_models):
   parser.add_argument("--name", required=True,
                       help="Name of this run. Used for monitoring and checkpointing.")
   parser.add_argument("--finetuned", required=True,
-                      help="Where to search for finetuned BiT models.")
+                      help="Where to search for finetuned BiT/ViT models.")
   parser.add_argument("--batch", type=int, default=512,
                       help="Batch size.")
   parser.add_argument("--epochs", type=int, default=300,
@@ -50,6 +50,10 @@ def argparser(known_models):
                       "Will always run one evaluation at the end of training.")
   parser.add_argument("--fixed_classifier", type=bool, default= False,
                       help= "True if the student model has a fixed classifier.")
+  parser.add_argument("--student_pretained", type=bool, default= False,
+                      help= "True if the student model is pretrained")
+  parser.add_argument("--finetuned_student", 
+                      help="Where to search for finetuned BiT/ViT model for the student.")
   return parser
 
 def mixup(images, labels):
@@ -266,6 +270,11 @@ def main(args):
 
     config_student = CONFIGS[args.model_student]
     student = VisionTransformer(config_student, img_size, zero_head=True, num_classes=num_classes)
+
+    if args.student_pretained == True:
+      logger.info(f"Loading student model from {args.finetuned_student}")
+      student.load_from(np.load(args.finetuned_student))
+
     if args.fixed_classifier is True:
       fixed_weights = dsimplex(num_classes=num_classes, device=device)
       student.head=torch.nn.Sequential(OrderedDict([
@@ -290,7 +299,7 @@ def main(args):
     if args.dataset == "cifar10":
       warmup_steps= int(total_steps/5)  #warmup steps for cifar10, can be changed
     elif args.dataset == "oxford_flowers102":
-      warmup_steps= 5000
+      warmup_steps= 250
     warmup_learning_rate = 0
     visualize_lrs(logger, args,total_steps,warmup_learning_rate, warmup_steps)
     

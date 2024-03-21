@@ -78,6 +78,12 @@ def mktrainval(args, logger):
   elif args.dataset == 'oxford_flowers102':
     train_set = tv.datasets.Flowers102(args.datadir, transform=train_tx, split="train", download=True)
     valid_set = tv.datasets.Flowers102(args.datadir, transform=val_tx, split="val", download=True)
+  elif args.dataset == "oxford_iiit_pet":
+    train_set = tv.datasets.OxfordIIITPet(root='/andromeda/datasets/', split = 'trainval', transform = train_tx)
+    valid_set = tv.datasets.OxfordIIITPet(root='/andromeda/datasets/', split = 'test', transform = val_tx)
+  elif args.dataset == "food-101":
+    train_set = tv.datasets.Food101(root='/andromeda/datasets/CoOp/', split= "train", transform= train_tx)
+    valid_set = tv.datasets.Food101(root='/andromeda/datasets/CoOp/', split= "test", transform= val_tx)
   else:
     raise ValueError(f"Sorry, we have not spent time implementing the "
                      f"{args.dataset} dataset in the PyTorch codebase. "
@@ -179,6 +185,10 @@ def main(args):
     model = models.KNOWN_MODELS[args.model](head_size=len(valid_set.classes), zero_head=True)
   elif args.dataset == "oxford_flowers102":
     model = models.KNOWN_MODELS[args.model](head_size=102, zero_head=True)
+  elif args.dataset == "oxford_iiit_pet":
+    model = models.KNOWN_MODELS[args.model](head_size=37, zero_head=True)
+  elif args.dataset == "food-101":
+    model = models.KNOWN_MODELS[args.model](head_size=101, zero_head=True)
   model.load_from(np.load(f"{args.model}.npz"))
 
   logger.info("Moving model onto all GPUs")
