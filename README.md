@@ -1,7 +1,8 @@
 # Training Regular Polytope Networks with knowledge distillation
 Training a RePoNet from scratch can easily become an unfeasible and costly task since there are no available public pretrained models with that kind of architecture.<br />
 We address this issue by transferring the knowledge from a standard Neural Network with great performances on a given dataset to the RePoNet following classic knowledge distillation and its guidelines. The experiments performed by the following code explore the use of this technique using different architectures and different datasets while testing the previously mentioned guidelines.<br />
-More detail in the paper: [Chisci Marco Training Regular Polytope Networks.pdf](https://github.com/marcochisciedu/Training-Regular-Polytope-Networks-with-knowledge-distillation/files/14850213/Chisci.Marco.Training.Regular.Polytope.Networks.pdf)
+More detail in the paper: [Chisci Marco Training Regular Polytope Networks with Knowledge Distillation.pdf](https://github.com/marcochisciedu/Training-Regular-Polytope-Networks-with-knowledge-distillation/files/14852038/Chisci.Marco.Training.Regular.Polytope.Networks.with.Knowledge.Distillation.pdf)
+
 
 ### Installing
 
@@ -77,4 +78,4 @@ To replicate the graphs I put on the paper run graphs.py (use the same batch, tr
 ```
 python3 graphs.py --name graph_flower_comparison --log /distillation/flowers/train.log*/distillation/flowers_fixed/train.log --batch 512 --training_size 1020 --epochs 1000 --eval_every 250 
 ```
-More runs on the same dataset and with the same hyperpameter can be plot on the same graph by concatenating their train.log paths with a *.
+More runs on the same dataset and with the same hyperpameter can be plot on the same graph by concatenating their train.log paths with a "*".
