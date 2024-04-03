@@ -49,6 +49,10 @@ python3 vit_train.py --name flowers102_run --dataset oxford_flowers102 --datadir
 
 ### Knowledge distillation
 
+The distillation code was written using [FunMatch Distillation](https://github.com/sayakpaul/FunMatch-Distillation) as a guide.
+
+The implementation of the d-Simplex was taken from [d-Simplex](https://github.com/NiccoBiondi/cores-compatibility/blob/main/src/cores/model.py)
+
 To run knowledge distillation with the BitResNets models run knowledge_distillation.py. For example:
 
 ```
