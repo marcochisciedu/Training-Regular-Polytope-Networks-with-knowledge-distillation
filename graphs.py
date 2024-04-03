@@ -34,7 +34,7 @@ def read_log(log, args):
           val_steps.append(''.join(line.split("Validation@")[1].split(" loss")[0]))
           val_losses.append(float(''.join(line.split("loss ")[1].split(", top1")[0])))
           val_top1.append(float(''.join(line.split("top1 ")[1].split("%, top5")[0])))
-      if "[step" in line.split(" ") and int(''.join(line.split("[step ")[1].split("/")[0]))%100 ==0:  #save a value every 500 steps
+      if "[step" in line.split(" ") and int(''.join(line.split("[step ")[1].split("/")[0]))%20 ==0:  #save a value every 500 steps
         if ''.join(line.split("[step ")[1].split("/")[0]) not in train_steps:
           train_steps.append(''.join(line.split("[step ")[1].split("/")[0]))
           train_losses.append(float(''.join(line.split("loss=")[1].split(" (lr=")[0])))
@@ -45,6 +45,7 @@ def read_log(log, args):
   train_steps= list(map(lambda x:int(x)/(args.training_size/args.batch) ,train_steps))
 
   return val_steps, val_losses, val_top1, train_steps, train_losses
+
 def main(args):
     num_logs = (args.log.count('*'))+1
     log = args.log.split("*")
@@ -62,26 +63,27 @@ def main(args):
       total_train_losses.append(train_losses)
 
 
-    names = ["100 Epochs fixed"]
+    names = ["FunMatch", "same/ic", "ind/rc", "fix/cc"]
+    colors = ['limegreen', 'dodgerblue', 'maroon', 'black' ]
     assert len(names)==num_logs
     plt.figure(figsize=(18,5))
     plt.subplot(131)
     for i in range(num_logs):
-      plt.plot(total_train_steps[i], total_train_losses[i], label=names[i])
+      plt.plot(total_train_steps[i], total_train_losses[i], label=names[i], color=colors[i])
     plt.legend()
     plt.xlabel("epochs")
     plt.ylabel("training loss")
 
     plt.subplot(132)
     for i in range(num_logs):
-      plt.plot(total_val_steps[i], total_val_losses[i], label=names[i])
+      plt.plot(total_val_steps[i], total_val_losses[i], label=names[i], color=colors[i])
     plt.legend()
     plt.xlabel("epochs")
     plt.ylabel("validation loss")
 
     plt.subplot(133)
     for i in range(num_logs):
-      plt.plot(total_val_steps[i], total_val_top1[i], label=names[i])
+      plt.plot(total_val_steps[i], total_val_top1[i], label=names[i], color=colors[i])
     plt.legend()
     plt.xlabel("epochs")
     plt.ylabel("top 1 validation accuracy %")

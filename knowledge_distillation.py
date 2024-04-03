@@ -39,6 +39,8 @@ def argparser(known_models):
                       help="temperature")
   parser.add_argument("--weight_decay", type=float, default=1e-5,
                       help="weight decay")
+  parser.add_argument("--warmup_steps", type=int, default=1500,
+                      help="warmup steps")
   parser.add_argument("--clip_threshold", type=float, default=1,
                       help="clip threshold")
   parser.add_argument("--base_lr", type=float, default=0.001,
@@ -255,14 +257,7 @@ def main(args):
     optimizer.zero_grad()
 
     total_steps = int(len(train_set)/ args.batch * args.epochs)
-    if args.dataset == "cifar10":
-      warmup_steps= int(total_steps/5)  #warmup steps for cifar10, can be changed
-    elif args.dataset == "oxford_flowers102":
-      warmup_steps= 5000
-    elif args.dataset == "oxford_iiit_pet":
-      warmup_steps = 1500
-    elif args.dataset == "food-101":
-      warmup_steps = 5000
+    warmup_steps = args.warmup_steps
     warmup_learning_rate = 0
     visualize_lrs(logger, args,total_steps,warmup_learning_rate, warmup_steps)
     

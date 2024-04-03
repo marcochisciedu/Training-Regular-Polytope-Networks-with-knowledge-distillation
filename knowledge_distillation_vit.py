@@ -39,6 +39,8 @@ def argparser(known_models):
                       help="temperature")
   parser.add_argument("--weight_decay", type=float, default=1e-5,
                       help="weight decay")
+  parser.add_argument("--warmup_steps", type=int, default=1500,
+                      help="warmup steps")
   parser.add_argument("--clip_threshold", type=float, default=1,
                       help="clip threshold")
   parser.add_argument("--base_lr", type=float, default=0.001,
@@ -122,18 +124,17 @@ def run_eval(model, data_loader, device, chrono, logger, step):
 
 def get_datasets(args, logger):
   """Returns train and validation datasets."""
-  precrop, crop = bit_hyperrule.get_resolution_from_dataset(args.dataset)      
   train_tx = tv.transforms.Compose([
-      tv.transforms.Resize((precrop, precrop)),
-      tv.transforms.RandomCrop((crop, crop)),
-      tv.transforms.RandomHorizontalFlip(),
-      tv.transforms.ToTensor(),
-      tv.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+    tv.transforms.Resize((420, 420)),
+    tv.transforms.RandomCrop((384, 384)),
+    tv.transforms.RandomHorizontalFlip(),
+    tv.transforms.ToTensor(),
+    tv.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
   ])
   val_tx = tv.transforms.Compose([
-      tv.transforms.Resize((crop, crop)),
-      tv.transforms.ToTensor(),
-      tv.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+    tv.transforms.Resize((384,384)),
+    tv.transforms.ToTensor(),
+    tv.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
   ])
 
   if args.dataset == "cifar10":
@@ -146,20 +147,14 @@ def get_datasets(args, logger):
     train_set = tv.datasets.ImageFolder(pjoin(args.datadir, "train"), train_tx)
     valid_set = tv.datasets.ImageFolder(pjoin(args.datadir, "val"), val_tx)
   elif args.dataset == 'oxford_flowers102':
-    train_tx = tv.transforms.Compose([
-      tv.transforms.Resize((420, 420)),
-      tv.transforms.RandomCrop((384, 384)),
-      tv.transforms.RandomHorizontalFlip(),
-      tv.transforms.ToTensor(),
-      tv.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-    ])
-    val_tx = tv.transforms.Compose([
-      tv.transforms.Resize((384,384)),
-      tv.transforms.ToTensor(),
-      tv.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-    ])
     train_set = tv.datasets.Flowers102(args.datadir, transform=train_tx, split="train", download=True)
     valid_set = tv.datasets.Flowers102(args.datadir, transform=val_tx, split="val", download=True)
+  elif args.dataset == "oxford_iiit_pet":
+    train_set = tv.datasets.OxfordIIITPet(root='/andromeda/datasets/', split = 'trainval', transform = train_tx)
+    valid_set = tv.datasets.OxfordIIITPet(root='/andromeda/datasets/', split = 'test', transform = val_tx)
+  elif args.dataset == "food-101":
+    train_set = tv.datasets.Food101(root='/andromeda/datasets/CoOp/', split= "train", transform= train_tx)
+    valid_set = tv.datasets.Food101(root='/andromeda/datasets/CoOp/', split= "test", transform= val_tx)
   else:
     raise ValueError(f"Sorry, we have not spent time implementing the "
                      f"{args.dataset} dataset in the PyTorch codebase. "
@@ -248,8 +243,11 @@ def main(args):
       num_classes=len(valid_set.classes)
     elif args.dataset == "oxford_flowers102":
       num_classes=102
+    elif args.dataset == "oxford_iiit_pet":
+      num_classes=37
+    elif args.dataset == "food-101":
+      num_classes=101
 
- 
     config_teacher = CONFIGS[args.model_teacher]
     img_size = 384
     teacher = VisionTransformer(config_teacher, img_size, zero_head=True, num_classes=num_classes)
@@ -296,10 +294,7 @@ def main(args):
     optimizer.zero_grad()
 
     total_steps = int(len(train_set)/ args.batch * args.epochs)
-    if args.dataset == "cifar10":
-      warmup_steps= int(total_steps/5)  #warmup steps for cifar10, can be changed
-    elif args.dataset == "oxford_flowers102":
-      warmup_steps= 250
+    warmup_steps = args.warmup_steps
     warmup_learning_rate = 0
     visualize_lrs(logger, args,total_steps,warmup_learning_rate, warmup_steps)
     
