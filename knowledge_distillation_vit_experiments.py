@@ -92,7 +92,7 @@ def topk(output, target, ks=(1,)):
   correct = pred.eq(target.view(1, -1).expand_as(pred))
   return [correct[:k].max(0)[0] for k in ks]
 
-def run_eval(model, data_loader, device, chrono, logger, step, feat_dim=2048, num_classes=102):
+def run_eval(model, data_loader, device, chrono, logger, step):
   # switch to evaluate mode
   model.eval()
 
@@ -104,8 +104,6 @@ def run_eval(model, data_loader, device, chrono, logger, step, feat_dim=2048, nu
     with torch.no_grad():
       x = x.to(device, non_blocking=True)
       y = y.to(device, non_blocking=True)
-      if step != "start":
-        y= torch.nn.functional.pad(input=y, pad=(1, feat_dim+1-num_classes), mode='constant', value=0)
 
       # compute output, measure accuracy and record loss.
       with chrono.measure("eval fprop"):
@@ -339,7 +337,7 @@ def main(args):
       # compute output
       with torch.no_grad():
         teacher_prediction = teacher(x)[0]
-        teacher_prediction= torch.nn.functional.pad(input=teacher_prediction, pad=(1, feat_dim+1-num_classes), mode='constant', value=0)
+        teacher_prediction= torch.nn.functional.pad(input=teacher_prediction, pad=(1, feat_dim-num_classes), mode='constant', value=0)
       student_prediction = student(x)[0]
       c = kl_divergence(teacher_prediction/args.temperature ,student_prediction/args.temperature)
       c_num = float(c.data.cpu().numpy())  # Also ensures a sync point.
