@@ -12,7 +12,7 @@ Install python dependencies by running:
 
 
 ```
-pip install -r bit_pytorch/requirements.txt
+pip install -r requirements.txt
 ```
 
 ## Experiments
